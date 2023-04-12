@@ -3,6 +3,18 @@
 
 # COMMAND ----------
 
+print("dbfs:/FileStore/tables/raw/bike_trips/")
+
+# COMMAND ----------
+
+delta_table = spark.read.format("delta").load("dbfs:/FileStore/tables/bronze_station_info.delta")
+
+# COMMAND ----------
+
+display(delta_table)
+
+# COMMAND ----------
+
 start_date = str(dbutils.widgets.get('01.start_date'))
 end_date = str(dbutils.widgets.get('02.end_date'))
 hours_to_forecast = int(dbutils.widgets.get('03.hours_to_forecast'))
