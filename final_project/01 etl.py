@@ -14,14 +14,6 @@ print("YOUR CODE HERE...")
 
 # COMMAND ----------
 
-import json
-
-# Return Success
-dbutils.notebook.exit(json.dumps({"exit_code": "OK"}))
-# comment
-
-# COMMAND ----------
-
 spark.sql("set spark.sql.streaming.schemaInference=true")
 historic_trip_data_df = (spark.readStream
                          .option("header", True)
@@ -34,7 +26,7 @@ display(historic_trip_data_df)
 # COMMAND ----------
 
 from pyspark.sql.functions import col
-historic_trip_df = historic_trip_data_df.filter("start_station_name == 'Cleveland Pl & Spring St'")
+historic_trip_df = historic_trip_data_df.filter(("start_station_name == 'Cleveland Pl & Spring St' OR end_station_name == 'Cleveland Pl & Spring St'"))
 display(historic_trip_df)
 
 # COMMAND ----------
@@ -51,6 +43,7 @@ bronze_station_status_df.display()
 
 bronze_station_info_df = (spark.readStream
                            .format("delta")
+                           .option("ignoreChanges", "true")
                            .load(BRONZE_STATION_INFO_PATH))
 
 # COMMAND ----------
@@ -59,7 +52,7 @@ bronze_station_info_df.display()
 
 # COMMAND ----------
 
-bronze_station_info_df = bronze_station_info_df.filter("short_name == '5492.05'")
+bronze_station_info_df = bronze_station_info_df.filter("short_name == '5492.05'").distinct()
 
 # COMMAND ----------
 
@@ -76,6 +69,18 @@ bronze_station_status_df = bronze_station_status_df.filter("station_id == '66db2
 # COMMAND ----------
 
 bronze_station_status_df.display()
+
+# COMMAND ----------
+
+print(bronze_station_status_df.groupby().count())
+
+# COMMAND ----------
+
+import json
+
+# Return Success
+dbutils.notebook.exit(json.dumps({"exit_code": "OK"}))
+# comment
 
 # COMMAND ----------
 
