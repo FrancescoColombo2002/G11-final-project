@@ -68,15 +68,31 @@ pip install holidays
 
 # COMMAND ----------
 
-
 from datetime import date
 import holidays
 from pyspark.sql.functions import *
+import pandas as pd
+from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
+import matplotlib.pyplot as plt
 
 us_holidays = holidays.US()
 
 for p in holidays.US(years = 2020).items():  
-    print(p) 
+    print(p)
+     
+
+
+dr = pd.date_range(start='2021-11-02', end='2021-11-30')
+df = pd.DataFrame()
+df['started_at'] = dr
+
+cal = calendar()
+holidays = cal.holidays(start=dr.min(), end=dr.max())
+
+df['Holiday'] = df['started_at'].isin(holidays)
+print (df)
+
+plt.scatter(df('started_at'), df('Holiday'))
 
 #hol = (historic_trip_data.withColumn("holiday", ("started_at")))
 #hol1 = (hol.select("day", "rideable_type"))
