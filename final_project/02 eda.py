@@ -34,12 +34,12 @@ from pandas_profiling.utils.cache import cache_file
 # COMMAND ----------
 
 
-historic_trip_data_df = (spark.read
+historic_trip_data = (spark.read
      .format("delta")
      .load("dbfs:/FileStore/tables/G11/bronze/historic_trip_data/"))
-historic_trip_data_df.display()
-historic_trip_data_df.printSchema()
-historic_trip_data_df.count()
+historic_trip_data.display()
+historic_trip_data.printSchema()
+historic_trip_data.count()
 
 
 # COMMAND ----------
@@ -78,7 +78,7 @@ us_holidays = holidays.US()
 for p in holidays.US(years = 2020).items():  
     print(p) 
 
-hol = (historic_trip_data.withColumn("holiday", ("started_at")))
+#hol = (historic_trip_data.withColumn("holiday", ("started_at")))
 #hol1 = (hol.select("day", "rideable_type"))
 #hol1.display()
 
