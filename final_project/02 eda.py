@@ -3,13 +3,13 @@
 
 # COMMAND ----------
 
-start_date = str(dbutils.widgets.get('01.start_date'))
-end_date = str(dbutils.widgets.get('02.end_date'))
-hours_to_forecast = int(dbutils.widgets.get('03.hours_to_forecast'))
-promote_model = bool(True if str(dbutils.widgets.get('04.promote_model')).lower() == 'yes' else False)
+#start_date = str(dbutils.widgets.get('01.start_date'))
+#end_date = str(dbutils.widgets.get('02.end_date'))
+#hours_to_forecast = int(dbutils.widgets.get('03.hours_to_forecast'))
+#promote_model = bool(True if str(dbutils.widgets.get('04.promote_model')).lower() == 'yes' else False)
 
-print(start_date,end_date,hours_to_forecast, promote_model)
-print("YOUR CODE HERE...")
+#print(start_date,end_date,hours_to_forecast, promote_model)
+#print("YOUR CODE HERE...")
 
 # COMMAND ----------
 
@@ -48,7 +48,27 @@ df1.display()
 
 # COMMAND ----------
 
+# DBTITLE 1,What are the monthly trip trends for your assigned station?
 df.groupBy(df1.month).count().orderBy(df.month).show()
+
+# COMMAND ----------
+
+import matplotlib.pyplot as plt
+graph = df.groupBy(df1.month).count().orderBy(df.month)
+plt.hist(graph)
+
+# COMMAND ----------
+
+# DBTITLE 1,What are the daily trip trends for your given station?
+df = (historic_trip_data.withColumn("day", month("started_at")))
+df1 = (df.select("day", "rideable_type"))
+df.groupBy(df1.day).count().orderBy(df.day).show()
+
+# COMMAND ----------
+
+df = (historic_trip_data.withColumn("day", month("started_at")))
+df1 = (df.select("day", "rideable_type"))
+df.groupBy(df1.day).count().orderBy(df.day).hist()
 
 # COMMAND ----------
 
@@ -86,7 +106,7 @@ bronze_station_info_profile
 # COMMAND ----------
 
 # DBTITLE 1,historic_weather
-historic_weather = (spark.read.format("delta").load("dbfs:/FileStore/tables/G11/historic_weather_df"))
+historic_weather = (spark.read.format("delta").load("dbfs:/FileStore/tables/G11/bronze/historic_weather_data"))
 historic_weather.display()
 
 # COMMAND ----------
@@ -97,14 +117,13 @@ print("Distinct Count: " + str(historic_weather.select("description").distinct()
 
 # COMMAND ----------
 
-historic_weather_df = historic_weather.select("*").toPandas()
-historic_weather_profile = pandas_profiling.ProfileReport(historic_weather_df)
-historic_weather_profile
+df.groupBy(df1.day).count().orderBy(df.day).show()
 
 # COMMAND ----------
 
-# DBTITLE 1,More in depth EDA
-
+historic_weather_df = historic_weather.select("*").toPandas()
+historic_weather_profile = pandas_profiling.ProfileReport(historic_weather_df)
+historic_weather_profile
 
 # COMMAND ----------
 

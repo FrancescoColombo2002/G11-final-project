@@ -4,22 +4,18 @@
 # COMMAND ----------
 
 
-start_date = str(dbutils.widgets.get('01.start_date'))
-end_date = str(dbutils.widgets.get('02.end_date'))
-hours_to_forecast = int(dbutils.widgets.get('03.hours_to_forecast'))
-promote_model = bool(True if str(dbutils.widgets.get('04.promote_model')).lower() == 'yes' else False)
+#start_date = str(dbutils.widgets.get('01.start_date'))
+#end_date = str(dbutils.widgets.get('02.end_date'))
+#hours_to_forecast = int(dbutils.widgets.get('03.hours_to_forecast'))
+#promote_model = bool(True if str(dbutils.widgets.get('04.promote_model')).lower() == 'yes' else False)
 
-print(start_date,end_date,hours_to_forecast, promote_model)
-print("YOUR CODE HERE...")
+#print(start_date,end_date,hours_to_forecast, promote_model)
+#print("YOUR CODE HERE...")
 
 
 # COMMAND ----------
 
 import json
-
-# Return Success
-#dbutils.notebook.exit(json.dumps({"exit_code": "OK"}))
-# comment
 
 # COMMAND ----------
 
@@ -35,8 +31,6 @@ display(historic_trip_data_df)
 
 # COMMAND ----------
 
-
-
 #Filters the historic trip data to contain only our assigned station data
 
 historic_trip_df = historic_trip_data_df.filter("start_station_name == 'Cleveland Pl & Spring St'")
@@ -45,7 +39,6 @@ display(historic_trip_df)
 
 
 # COMMAND ----------
-
 
 from pyspark.sql.functions import col
 
@@ -73,13 +66,11 @@ bronze_station_status_df.display()
 
 # COMMAND ----------
 
-
 #Filtering to have only our station
 bronze_station_status_df = bronze_station_status_df.filter("station_id == '66db2fd0-0aca-11e7-82f6-3863bb44ef7c'")
 bronze_station_status_df.display()
 
 # COMMAND ----------
-
 
 #Writing stream for bronze station status
 
@@ -136,9 +127,10 @@ bronze_nyc_weather_df.display()
 
 # COMMAND ----------
 
-dbfs:/FileStore/tables/G11/bronze_station_infodbutils.fs.mkdirs("dbfs:/FileStore/tables/G11/bronze_station_info")
+# Return Success
+dbutils.notebook.exit(json.dumps({"exit_code": "OK"}))
+# comment
 
 # COMMAND ----------
-
 
 
