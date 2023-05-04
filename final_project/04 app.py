@@ -17,5 +17,22 @@ print("YOUR CODE HERE...")
 
 import json
 
-# Return Success
 dbutils.notebook.exit(json.dumps({"exit_code": "OK"}))
+
+# COMMAND ----------
+
+# MAGIC %pip install folium
+
+# COMMAND ----------
+
+import folium
+
+# Create a map centered at the given latitude and longitude
+lat, lon = 40.722062, -73.997278
+map = folium.Map(location=[lat, lon], zoom_start=12)
+
+# Add a marker at the given latitude and longitude
+folium.Marker(location=[lat, lon], icon=folium.Icon(color='blue')).add_to(map)
+
+# Display the map
+map
