@@ -36,3 +36,7 @@ folium.Marker(location=[lat, lon], icon=folium.Icon(color='blue')).add_to(map)
 
 # Display the map
 map
+
+# COMMAND ----------
+
+
