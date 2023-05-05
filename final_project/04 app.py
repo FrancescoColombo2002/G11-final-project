@@ -28,6 +28,7 @@ from pyspark.sql.functions import *
 import mlflow
 
 ARTIFACT_PATH = GROUP_MODEL_NAME
+hours_to_forecast = 4
 
 # COMMAND ----------
 
@@ -83,6 +84,7 @@ print(weather_df[weather_df.dt==currentdate].reset_index(drop=True))
 info = (spark.read
     .format("delta")
     .load('dbfs:/FileStore/tables/G11/silver/station_info'))
+station_capacity = info.collect()[0][0]
 print("Station Capacity: ", info.collect()[0][0])
 
 # COMMAND ----------
@@ -90,6 +92,9 @@ print("Station Capacity: ", info.collect()[0][0])
 station_status = (spark.read
     .format("delta")
     .load('dbfs:/FileStore/tables/G11/silver/station_status'))
+
+last_reported_time = (station_status.filter(col("last_reported") <= currenthour).sort(desc("last_reported")).collect()[0][3])
+num_bikes_available = (station_status.filter(col("last_reported") <= currenthour).sort(desc("last_reported")).collect()[0][0])
 
 display(station_status.filter(col("last_reported") <= currenthour).sort(desc("last_reported")).head(1))
 
@@ -137,11 +142,7 @@ print("The latest production version of the model '%s' is '%s'." %(ARTIFACT_PATH
 model_prod_uri = f'models:/{ARTIFACT_PATH}/production'
 model_prod = mlflow.prophet.load_model(model_prod_uri)
 prod_forecast = model_prod.predict(test_data)
-prod_forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']]
-
-# COMMAND ----------
-
-prophet_plot = model_prod.plot(prod_forecast)
+prod_forecast
 
 # COMMAND ----------
 
@@ -173,7 +174,67 @@ print("The latest staging version of the model '%s' is '%s'." %(ARTIFACT_PATH, l
 model_staging_uri = f'models:/{ARTIFACT_PATH}/staging'
 model_staging = mlflow.prophet.load_model(model_staging_uri)
 staging_forecast = model_staging.predict(test_data)
-staging_forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']]
+staging_forecast
+
+# COMMAND ----------
+
+prod_forecast['stage'] = 'production'
+staging_forecast['stage'] = 'staging'
+df_forecast = pd.concat([prod_forecast, staging_forecast]).sort_values(['ds', 'stage']).reset_index(drop=True)
+df_forecast
+
+# COMMAND ----------
+
+forecast_df = prod_forecast.iloc[-hours_to_forecast:,:]
+forecast_temp = forecast_df[['yhat']]
+forecast_temp['index'] = list(range(0, hours_to_forecast))
+forecast_temp = spark.createDataFrame(forecast_temp)
+
+merged_df = forecast_temp.join(diff, on='index', how='outer')
+
+from pyspark.sql.functions import when
+
+imputed_df = merged_df.withColumn(
+    "difference",
+    when(merged_df["difference"].isNull(), merged_df['yhat']).otherwise(merged_df['difference'])
+)
+
+# cumulative addition of  diff_new values to find new_available (our prediction of how many bikes will be available)
+from pyspark.sql.functions import col, sum as spark_sum
+from pyspark.sql.window import Window
+imputed_df = imputed_df.orderBy("rounded_hour", ascending=True)
+window = Window.orderBy("rounded_hour")
+imputed_df = imputed_df.withColumn("new_available", spark_sum(col("difference")).over(window))
+imputed_df = imputed_df.orderBy("rounded_hour", ascending=False)
+
+pd_plot = imputed_df.toPandas()
+pd_plot = pd_plot.iloc[:hours_to_forecast,:]
+pd_plot["capacity"] = station_capacity
+pd_plot
+
+# COMMAND ----------
+
+#plotting the computed forecasts
+import plotly.express as px
+import plotly.graph_objects as go
+fig = go.Figure()
+pd_plot["zero_stock"] = 0
+fig.add_trace(go.Scatter(x=pd_plot.rounded_hour, y=pd_plot["new_available"], name='Forecasted available bikes',mode = 'lines+markers',
+                         line = dict(color='blue', width=3, dash='solid')))
+fig.add_trace(go.Scatter(x=pd_plot.rounded_hour[:4], y=pd_plot["new_available"][:4], mode = 'markers',name='Forecast for next 4 hours',
+                         marker_symbol = 'triangle-up',
+                         marker_size = 15,
+                         marker_color="green"))
+fig.add_trace(go.Scatter(x=pd_plot.rounded_hour, y=pd_plot["capacity"], name='Station Capacity (Overstock beyond this)',
+                         line = dict(color='red', width=3, dash='dot')))
+fig.add_trace(go.Scatter(x=pd_plot.rounded_hour, y=pd_plot["zero_stock"], name='Stock Out (Understock below this)',
+                         line = dict(color='red', width=3, dash='dot')))
+# Edit the layout
+fig.update_layout(title='Forecasted number of available bikes',
+                   xaxis_title='Forecasted Timeline',
+                   yaxis_title='#bikes',
+                   yaxis_range=[-5,100])
+fig.show()
 
 # COMMAND ----------
 
@@ -187,7 +248,7 @@ prophet_plot2 = model_staging.plot_components(staging_forecast)
 
 test_data.ds = pd.to_datetime(test_data.ds)
 staging_forecast.ds = pd.to_datetime(staging_forecast.ds)
-results = staging_forecast[['ds','yhat']].merge(test_data,on="ds")
+results = df_forecast.merge(test_data,left_on="ds", right_on="ds")
 results['residual'] = results['yhat'] - results['y']
 
 # Plot the residuals
@@ -195,7 +256,8 @@ results['residual'] = results['yhat'] - results['y']
 fig = px.scatter(
     results, x='yhat', y='residual',
     marginal_y='violin',
-    trendline='ols'
+    trendline='ols',
+    color='stage'
 )
 fig.show()
 
