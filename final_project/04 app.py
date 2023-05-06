@@ -39,4 +39,42 @@ map
 
 # COMMAND ----------
 
+from pyspark.sql.functions import to_timestamp
+from pyspark.sql.types import IntegerType
 
+# Create a list of tuples with string and integer values
+data = [('12:00:00', 35), ('2023-05-04 13:00:00', 30), ('2023-05-04 14:00:00', 45),('2023-05-04 15:00:00', 50), ('2023-05-04 16:00:00', 40),('2023-05-04 17:00:00', 35), ('2023-05-04 18:00:00', 40),('2023-05-04 19:00:00', 50), ('2023-05-04 20:00:00', 40)]
+
+# Create a PySpark dataframe from the list of tuples
+df = spark.createDataFrame(data, ['time', 'value'])
+
+# Convert the 'time' column to timestamp
+df = df.withColumn('time', to_timestamp('time'))
+
+# Show the resulting dataframe
+df.show()
+
+# COMMAND ----------
+
+from pyspark.sql.functions import col, date_format
+
+# Assume df is your PySpark dataframe with a datetime column 'datetime_col'
+df = df.select(date_format(col('time'), 'HH:mm:ss').alias('time'), 'value')
+
+# COMMAND ----------
+
+df_with_time_only.show()
+
+# COMMAND ----------
+
+import matplotlib.pyplot as plt
+
+time_values = [row.time for row in df.select('time').collect()]
+value_values = [row.value for row in df.select('value').collect()]
+
+# COMMAND ----------
+
+plt.plot(time_values, value_values)
+plt.ylim([0, max(value_values)+30])
+plt.axhline(y=40, color='r', linestyle='--')
+plt.show()
