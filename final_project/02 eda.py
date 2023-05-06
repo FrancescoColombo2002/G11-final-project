@@ -94,14 +94,17 @@ print(df)
 
 plt.scatter(df['started_at'],df['Holiday'])
 
-vaca = df[(df["Holiday"] == True)]
+#vaca = df[(df["Holiday"] == True)]
 
-print(vaca)
+#print(vaca)
+
+df.filter(df["Holiday"] == True).show()
 
 
 
-hol1 = (hol.select("day", "rideable_type"))
-hol1.display()
+
+#hol1 = (hol.select("day", "rideable_type"))
+#hol1.display()
 
 
 # COMMAND ----------
@@ -120,6 +123,43 @@ bronze_station_info_df = (spark.read
                          .format("delta")
                          .load("dbfs:/FileStore/tables/G11/bronze/station_info"))
 bronze_station_info_df.display()
+
+# COMMAND ----------
+
+weather_trips = (spark.read
+                         .format("delta")
+                         .load("dbfs:/FileStore/tables/G11/silver/inventory/"))
+weather_trips.display()
+
+
+# COMMAND ----------
+
+from pyspark.sql.functions import *
+
+df4 = (weather_trips.withColumn("hour_change", abs("net_hour_change")))
+df5 = (df4.select("main", "hour_change"))
+
+# COMMAND ----------
+
+import matplotlib.pyplot as plt
+df6 = df4.groupBy(df5.main).count().orderBy(df5.main)
+df = df6.select("*").toPandas()
+ax = df.plot.bar(x='main', y='count', rot=30)
+
+# COMMAND ----------
+
+# Our findings here are pretty interesting. there is pretty much no rides being done under more extreme conditions such as thunderstorms, snow, and smoke. It seems as though most of the activity is being done during times where it is either cloudy or clear skys. Although there is a decrease in activity while it is raining, there is still a fair amount of activity. As you can see on the histogram there is basically no rides during drizzle, fog, or haze. This is most likely due to lack of reporting those weather conditions, it likely happens more often than displayed here.
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+from pyspark.sql.functions import *
+import matplotlib.pyplot as plt
+df.display()
+df1= df5.groupBy(df.main).count().orderBy(df.main).show()
 
 # COMMAND ----------
 
